@@ -9,13 +9,13 @@ import java.util.ArrayList;
  */
 public interface State {
     // determine if current state is goal
-    boolean isGoal();
+    boolean isGoal(int[] goal);
 
     // generate successors to the current state
     ArrayList<State> genSuccessors();
 
     // determine cost from initial state to THIS state
-    double findCost();
+     int getCost();
 
     // print the current state
     void printState();
@@ -30,5 +30,9 @@ public interface State {
     PuzzleState getPre();
 
     ArrayList<State> getPath();
+
+    String getStringPath();
+
+    String toString();
 
 }

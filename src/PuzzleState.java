@@ -3,27 +3,24 @@ import java.util.Arrays;
 import java.util.Collections;
 
 /**
- * EightPuzzleState defines a state for the 8puzzle problem. The board is always
- * represented by a single dimensioned array, we attempt to provide the illusion
- * that the state representation is 2 dimensional and this works very well. In
- * terms of the actual tiles, '0' represents the hole in the board, and 0 is
- * treated special when generating successors. We do not treat '0' as a tile
- * itself, it is the "hole" in the board (as we refer to it herein)
+ * PuzzleState defines a state for the nth-puzzle problem. The board is always
+ * represented by a single dimensioned array.
+ * In terms of the actual tiles, '0' represents the hole in the board, and 0 is
+ * treated special when generating successors.
  *
  * @author Itai Lashover
  */
 public class PuzzleState implements State {
 
-    private int puzzleSize;
-    private int n;
-    private int m;
-    private PuzzleState pre = null;
-    private int cost = 0;
-    private int numOfEmptyBlocks;
-    private int outOfPlace = 0;
-    private int manDist = 0;
-    int[] goalState;
     private int[] curBoard;
+    private int puzzleSize;
+    private int numOfRows;
+    private int numOfCols;
+    private int numOfEmptyBlocks;
+    private int cost;
+
+    private PuzzleState pre = null;
+    private String path = "";
 
     /**
      *Constructor for PuzzleState
@@ -34,86 +31,21 @@ public class PuzzleState implements State {
      * @param cost        - The total cost to reach this state
      */
     public PuzzleState(int[] board, int n, int m, int emptyBlocks, int cost) {
-        puzzleSize = n*m;
-        numOfEmptyBlocks = emptyBlocks;
-        goalState = new int[n*m];
-        for(int i=0 ; i<puzzleSize-numOfEmptyBlocks ; i++) {
-            goalState[i] = i + 1;
-        }
-        curBoard = board;
-        setOutOfPlace();
-        setManDist();
-        this.n = n;
-        this.m = m;
-        this.cost += cost;
+        this.numOfRows = n;
+        this.numOfCols = m;
+        this.numOfRows = n;
+        this.numOfCols = m;
+        this.puzzleSize = n*m;
+        this.numOfEmptyBlocks = emptyBlocks;
+        this.curBoard = board;
+        this.cost = cost;
     }
 
-//    /**
-//     * How much it costs to come to this state
-//     */
-//    @Override
-//    public double findCost() {
-//        int cost = 0;
-//        for (int i = 0; i < curBoard.length; i++) {
-//            int goalNumber = goalState[i] == 0 ? 9 : goalState[i];
-//            cost += Math.abs(curBoard[i] - goalNumber);
-//        }
-//        return cost;
-//    }
-
     /**
-     * @return אhe total cost to reach this state
+     * * @return The total cost to reach this state
      */
-    public double findCost() {
+    public int getCost() {
         return cost;
-    }
-
-    /**
-     * Set the 'tiles out of place' distance for the current board
-     */
-    private void setOutOfPlace() {
-        for (int i = 0; i < curBoard.length; i++) {
-            if (curBoard[i] != goalState[i]) {
-                outOfPlace++;
-            }
-        }
-    }
-
-    /**
-     * Set the Manhattan Distance for the current board
-     */
-    private void setManDist() {
-        // linearly search the array independent of the nested for's below
-        int index = -1;
-
-        // just keeps track of where we are on the board (relatively, can't use
-        // 0 so these values need to be shifted to the right one place)
-        for (int y = 0; y < n; y++) {
-            for (int x = 0; x < m; x++) {
-                index++;
-
-                // sub 1 from the val to get the index of where that value
-                // should be
-                int val = (curBoard[index] - 1);
-
-                /*
-                 * If we're not looking at the hole. The hole will be at
-                 * location -1 since we subtracted 1 before to turn val into the
-                 * index
-                 */
-                if (val != -1) {
-                    // Horizontal offset, mod the tile value by the horizontal
-                    // dimension
-                    int horiz = val % n;
-                    // Vertical offset, divide the tile value by the vertical
-                    // dimension
-                    int vert = val / m;
-
-                    manDist += Math.abs(vert - (y)) + Math.abs(horiz - (x));
-                }
-                // If we are looking at the hole, skip it
-            }
-        }
     }
 
     /**
@@ -148,10 +80,10 @@ public class PuzzleState implements State {
      */
     private int getHolesState() {
         int[] holes = getHoles();
-        if(holes[0]+n == holes[1]) {        //horizontal
+        if(holes[0]+numOfRows == holes[1]) {        //horizontal
             return 1;
         }
-        else if(holes[0] + 1 == holes[1] && holes[0]/n == holes[1]/n){      //vertical
+        else if(holes[0] + 1 == holes[1] && holes[0]/numOfRows == holes[1]/numOfRows){      //vertical
             return 2;
         }
         else{
@@ -159,21 +91,6 @@ public class PuzzleState implements State {
         }
     }
 
-    /**
-     * Getter for the outOfPlace value
-     * @return the outOfPlace h(n) value
-     */
-    public int getOutOfPlace() {
-        return outOfPlace;
-    }
-
-    /**
-     * Getter for the Manhattan Distance value
-     * @return the Manhattan Distance h(n) value
-     */
-    public int getManDist() {
-        return manDist;
-    }
 
     /**
      * Setter the previous state of the current state
@@ -214,9 +131,9 @@ public class PuzzleState implements State {
         }
         else if (numOfEmptyBlocks == 2) {
             int holes[] = getHoles();
+            genSuccessors2(successors, holes);
             genSuccessors1(successors, holes[0]);
             genSuccessors1(successors, holes[1]);
-            genSuccessors2(successors, holes);
         }
         for (State suc : successors){
             suc.setPre(this);
@@ -225,68 +142,101 @@ public class PuzzleState implements State {
     }
 
     public void genSuccessors1(ArrayList<State> successors, int hole) {
-        // try to generate a state by sliding a tile leftwise into the hole
-        // if we CAN slide into the hole
-        if (hole % n != 0) {
-            /*
-             * we can slide leftwise into the hole, so generate a new state for
-             * this condition and throw it into successors
-             */
-            swapAndStore(hole - 1, hole, cost + 5, successors);
-        }
-        // try to generate a state by sliding a tile topwise into the hole
-        if (hole < (m - 1) * n) {
-            swapAndStore(hole + n, hole, cost + 5, successors);
-        }
-        // try to generate a state by sliding a tile bottomwise into the hole
-        if (hole >= n) {
-            swapAndStore(hole - n, hole, cost + 5, successors);
-        }
-        // try to generate a state by sliding a tile rightwise into the hole
-        if (hole % n != n - 1) {
-            swapAndStore(hole + 1, hole, cost + 5, successors);
-        }
+        left(successors, hole);
+        up(successors, hole);
+        right(successors, hole);
+        down(successors, hole);
     }
 
     public void genSuccessors2(ArrayList<State> successors, int holes[]) {
         int holesState = getHolesState();
         if(holesState == 1) {
-            if (holes[0] % n != 0) {
-                swap2AndStore(holes[0] - 1, holes[0], holes[1] - 1, holes[1], cost + 6, successors);
-            }
-            if (holes[0] % n != n - 1) {
-                swap2AndStore(holes[0] + 1, holes[0], holes[1] + 1, holes[1], cost + 6, successors);
-            }
+            twoLeft(successors, holes);
         }
-        else if (holesState == 2) {
-                // try to generate a state by sliding a tile topwise into the hole
-                if (holes[0] < (m - 1) * n) {
-                    swap2AndStore(holes[0] + n, holes[0], holes[1] + n, holes[1], cost + 7, successors);
-                }
-
-                // try to generate a state by sliding a tile bottomwise into the hole
-                if (holes[0] >= n) {
-                    swap2AndStore(holes[0] - n, holes[0], holes[1] - n, holes[1], cost + 7, successors);
-                }
-            }
+        if (holesState == 2) {
+            twoUp(successors, holes);
         }
+        if(holesState == 1) {
+            twoRight(successors, holes);
+        }
+        if (holesState == 2) {
+            twoDown(successors, holes);
+        }
+    }
 
-    /*
+    private void right(ArrayList<State> successors ,int hole) {
+        if (hole % numOfCols != 0) {
+            String path = ""+curBoard[hole-1]+"R";
+            swapAndStore(hole - 1, hole, cost + 5, successors, path);
+        }
+    }
+
+    private void left(ArrayList<State> successors ,int hole) {
+        if (hole % numOfCols != numOfRows) {
+            String path = ""+curBoard[hole+1]+"L";
+            swapAndStore(hole + 1, hole, cost + 5, successors, path);
+        }
+    }
+
+    private void down(ArrayList<State> successors ,int hole) {
+        if (hole >= numOfCols) {
+            String path = ""+curBoard[hole - numOfCols]+"D";
+            swapAndStore(hole - numOfCols, hole, cost + 5, successors, path);
+        }
+    }
+
+    private void up(ArrayList<State> successors ,int hole) {
+        if (hole < (numOfRows - 1) * numOfCols) {
+            String path = ""+curBoard[hole + numOfCols]+"U";
+            swapAndStore(hole + numOfCols, hole, cost + 5, successors, path);
+        }
+    }
+
+    private void twoRight(ArrayList<State> successors ,int[] holes) {
+        if (holes[0] % numOfCols != 0) {
+            String path = ""+curBoard[holes[0] - 1]+"&"+curBoard[holes[1] - 1]+"R";
+            swap2AndStore(holes[0] - 1, holes[0], holes[1] - 1, holes[1], cost + 6, successors, path);
+        }
+    }
+
+    private void twoLeft(ArrayList<State> successors ,int[] holes) {
+        if (holes[0] % numOfCols != numOfRows) {
+            String path = ""+curBoard[holes[0] + 1]+"&"+curBoard[holes[1] + 1]+"L";
+            swap2AndStore(holes[0] + 1, holes[0], holes[1] + 1, holes[1], cost + 6, successors, path);
+        }
+    }
+
+    private void twoDown(ArrayList<State> successors ,int[] holes) {
+        if (holes[0] >= numOfCols) {
+            String path = ""+curBoard[holes[0] - numOfCols]+"&"+curBoard[holes[1] - numOfCols]+"D";
+            swap2AndStore(holes[0] - numOfCols, holes[0], holes[1] - numOfCols, holes[1], cost + 7, successors, path);
+        }
+    }
+    private void twoUp(ArrayList<State> successors ,int[] holes) {
+        if (holes[0] < (numOfRows - 1) * numOfCols) {
+            String path = ""+curBoard[holes[0] + numOfCols]+"&"+curBoard[holes[1] + numOfCols]+"U";
+            swap2AndStore(holes[0] + numOfCols, holes[0], holes[1] + numOfCols, holes[1], cost + 7, successors, path);
+        }
+    }
+
+
+    /**
      * Switches the data at indices d1 and d2, in a copy of the current board
      * creates a new state based on this new board and pushes into s.
      */
-    private void swapAndStore(int d1, int d2,int cost, ArrayList<State> s) {
+    private void swapAndStore(int d1, int d2,int cost, ArrayList<State> s, String path) {
         int[] cpy = copyBoard(curBoard);
         int temp = cpy[d1];
         cpy[d1] = curBoard[d2];
         cpy[d2] = temp;
-        PuzzleState newState = new PuzzleState(cpy, n, m, numOfEmptyBlocks, cost);
+        PuzzleState newState = new PuzzleState(cpy, numOfRows, numOfCols, numOfEmptyBlocks, cost);
         if(!this.equals(newState)){
             s.add(newState);
+            newState.setStringPath(this.path, path);
         }
     }
 
-    private void swap2AndStore(int d1, int d2,int e1, int e2, int cost, ArrayList<State> s) {
+    private void swap2AndStore(int d1, int d2,int e1, int e2, int cost, ArrayList<State> s, String path) {
         int[] cpy = copyBoard(curBoard);
         int temp1 = cpy[d1];
         int temp2 = cpy[e1];
@@ -294,7 +244,11 @@ public class PuzzleState implements State {
         cpy[e1] = curBoard[e2];
         cpy[d2] = temp1;
         cpy[e2] = temp2;
-        s.add((new PuzzleState(cpy,n,m,numOfEmptyBlocks,cost)));
+        PuzzleState newState = new PuzzleState(cpy, numOfRows, numOfCols, numOfEmptyBlocks, cost);
+        if(!this.equals(newState)){
+            s.add(newState);
+            newState.setStringPath(this.path, path);
+        }
     }
 
     /**
@@ -304,7 +258,7 @@ public class PuzzleState implements State {
      * the goal
      */
     @Override
-    public boolean isGoal() {
+    public boolean isGoal(int[] goalState) {
         return Arrays.equals(curBoard, goalState);
     }
 
@@ -313,10 +267,10 @@ public class PuzzleState implements State {
      */
     @Override
     public void printState() {
-        for(int i=0 ; i<n ; i++){
+        for(int i=0 ; i<numOfRows ; i++){
             String row = " | ";
-            for (int j=0 ; j<m ; j++){
-                row += curBoard[j+(i*m)] + " | ";
+            for (int j = 0; j< numOfCols; j++){
+                row += curBoard[j+(i* numOfCols)] + " | ";
             }
             System.out.println(row);
             System.out.println("---------");
@@ -331,7 +285,6 @@ public class PuzzleState implements State {
     @Override
     public boolean equals(State s) {
         return Arrays.equals(this.curBoard, ((PuzzleState) s).getCurBoard());
-
     }
 
     /**
@@ -359,29 +312,30 @@ public class PuzzleState implements State {
         return path;
     }
 
-
-    public static void main(String[] args) {
-        int board[] = {3,4,5,1,7,0,6,2,0};
-        PuzzleState p = new PuzzleState(board,3,3,2,0);
-        p.printState();
-        ArrayList<State> s = p.genSuccessors();
-        System.out.println();
-        for (int i=0 ; i<s.size() ; i++){
-            s.get(i).printState();
-            System.out.println(s.get(i).findCost());
-            System.out.println();
+    private void setStringPath(String pre, String current){
+        if(pre.length() == 0) {
+            this.path += current;
         }
-        System.out.println();
-        ArrayList<State> s2 = s.get(3).genSuccessors();
-        for (int i=0 ; i<s2.size() ; i++){
-            s2.get(i).printState();
-            System.out.println(s2.get(i).findCost());
-            System.out.println();
+        else{
+            this.path += pre + "-" + current;
         }
+    }
 
-        int board2[] = {1, 3, 4, 2, 0, 0};
-        PuzzleState p2 = new PuzzleState(board2, 2, 3, 2, 0);
-        p2.printState();
+    public String getStringPath(){
+        return path;
+    }
+
+    @Override
+    public String toString() {
+        return Arrays.toString(curBoard);
+    }
+
+    public int getNumOfRows(){
+        return numOfRows;
+    }
+
+    public int getNumOfCols(){
+        return numOfCols;
     }
 
 }

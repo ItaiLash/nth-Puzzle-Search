@@ -18,13 +18,13 @@ public class Algo {
 
     public void run(State start, State goal) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         Method m = Algo.class.getDeclaredMethod(algo,State.class,State.class);
-        long startTime = 0, endTime = 0, totalTime = 0;
+        long startTime = 0, stopTime, totalTime = 0;
         if (withTime){
             startTime = System.nanoTime();
         }
         String ans = (String)m.invoke(this,start, goal);
         if(withTime){
-            long stopTime = System.nanoTime();
+            stopTime = System.nanoTime();
             totalTime = stopTime - startTime;
         }
         System.out.println(algo);
@@ -118,7 +118,6 @@ public class Algo {
         q.add(start);
         open.put(start.toString(), start);
         numOfStates++;
-        int index = 0;
         while (!q.isEmpty()) {
             State current = q.poll(); // Get the cheapest state to explore.
             open.remove(current.toString(), current);
@@ -219,22 +218,20 @@ public class Algo {
                 current.setOut(true);
                 stack.push(current);
                 ArrayList<State> suc = current.genSuccessors();
-                Comparator<State> stateComparator = new Comparator<State>() {
-                    public int compare(State s1, State s2) {
-                        if (s1.getCost() < s2.getCost()) {
+                Comparator<State> stateComparator = (s1, s2) -> {
+                    if (s1.getCost() < s2.getCost()) {
+                        return -1;
+                    } else if (s1.getCost() > s2.getCost()) {
+                        return 1;
+                    } else {
+                        if (s1.getId() < s2.getId()) {
                             return -1;
-                        } else if (s1.getCost() > s2.getCost()) {
+                        } else {           //s1.getId() > s2.getId()
                             return 1;
-                        } else {
-                            if (s1.getId() < s2.getId()) {
-                                return -1;
-                            } else {           //s1.getId() > s2.getId()
-                                return 1;
-                            }
                         }
                     }
                 };
-                Collections.sort(suc, stateComparator);
+                suc.sort(stateComparator);
                 // Iterate over all of the allowed operators.
                 for (int i = 0; i < suc.size(); i++) {
                     State next = suc.get(i);
@@ -289,10 +286,10 @@ public class Algo {
 //        System.out.println("Num: " + numOfStates);
 //        System.out.println("Cost: " + cost);
 //
-        int board[] = {1,0,4,
+        int[] board = {1,0,4,
                        3,5,6,
                        2,0,7};
-        int goal[] = {1,2,3,4,5,6,7,0,0};
+        int[] goal = {1,2,3,4,5,6,7,0,0};
 
         State p = new PuzzleState(board, 3, 3, 2, 0,goal);
         State g = new PuzzleState(goal, 3, 3, 2, 0, goal);

@@ -1,6 +1,6 @@
 public class PuzzleStateAlgo implements StateAlgo {
-    private PuzzleState currentState;
-    private int[] goalState;
+    private final PuzzleState currentState;
+    private final int[] goalState;
 
     public PuzzleStateAlgo(PuzzleState cur, int[] goal){
         this.currentState = cur;
@@ -72,10 +72,10 @@ public class PuzzleStateAlgo implements StateAlgo {
     }
 
     public static void main(String[] args) {
-        int board[] = {8, 1, 3,
+        int[] board = {8, 1, 3,
                        4, 0, 2,
                        7, 6, 5};
-        int goal[] = {1,2,3,4,5,6,7,8,0};
+        int[] goal = {1,2,3,4,5,6,7,8,0};
         PuzzleState p = new PuzzleState(board, 3, 3, 1, 0, goal);
         PuzzleStateAlgo sa = new PuzzleStateAlgo(p,goal);
         System.out.println(sa.manhattanDistance());

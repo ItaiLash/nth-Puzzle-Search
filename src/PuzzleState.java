@@ -14,18 +14,18 @@ public class PuzzleState implements State, Comparable<State> {
 
     private static int uniqueKey = 0;
 
-    private int id;
-    private int[] curBoard;
-    private int puzzleSize;
-    private int numOfRows;
-    private int numOfCols;
-    private int numOfEmptyBlocks;
-    private int cost;
+    private final int id;
+    private final int[] curBoard;
+    private final int puzzleSize;
+    private final int numOfRows;
+    private final int numOfCols;
+    private final int numOfEmptyBlocks;
+    private final int cost;
     private Boolean out = false;
     private PuzzleState pre = null;
     private String path = "";
 
-    private PuzzleStateAlgo psa;
+    private final PuzzleStateAlgo psa;
 
     public int gn;
     public int fn;
@@ -86,7 +86,7 @@ public class PuzzleState implements State, Comparable<State> {
      * @return the a two dimension array with the indexes of the two "hole" (or 0 spot)
      */
     private int[] getHoles() {
-        int holes[] = new int[2];
+        int[] holes = new int[2];
         int index = 0;
         for (int i = 0; i < puzzleSize; i++) {
             if (curBoard[i] == 0)
@@ -120,9 +120,7 @@ public class PuzzleState implements State, Comparable<State> {
      */
     private int[] copyBoard(int[] state) {
         int[] ret = new int[puzzleSize];
-        for (int i = 0; i < puzzleSize; i++) {
-            ret[i] = state[i];
-        }
+        if (puzzleSize >= 0) System.arraycopy(state, 0, ret, 0, puzzleSize);
         return ret;
     }
 
@@ -133,13 +131,13 @@ public class PuzzleState implements State, Comparable<State> {
      */
     @Override
     public ArrayList<State> genSuccessors() {
-        ArrayList<State> successors = new ArrayList<State>();
+        ArrayList<State> successors = new ArrayList<>();
         if (numOfEmptyBlocks == 1) {
             int hole = getHole();
             genSuccessors1(successors, hole);
         }
         else if (numOfEmptyBlocks == 2) {
-            int holes[] = getHoles();
+            int[] holes = getHoles();
             genSuccessors2(successors, holes);
             genSuccessors1(successors, holes[0]);
             genSuccessors1(successors, holes[1]);
@@ -157,7 +155,7 @@ public class PuzzleState implements State, Comparable<State> {
         down(successors, hole);
     }
 
-    public void genSuccessors2(ArrayList<State> successors, int holes[]) {
+    public void genSuccessors2(ArrayList<State> successors, int[] holes) {
         int holesState = getHolesState();
         if(holesState == 1) {
             twoLeft(successors, holes);
@@ -366,7 +364,7 @@ public class PuzzleState implements State, Comparable<State> {
      */
     @Override
     public boolean equals(State s) {
-        return Arrays.equals(this.curBoard, ((PuzzleState) s).getCurBoard());
+        return Arrays.equals(this.curBoard, s.getCurBoard());
     }
 
     @Override
@@ -380,9 +378,9 @@ public class PuzzleState implements State, Comparable<State> {
     @Override
     public void printState() {
         for(int i=0 ; i<numOfRows ; i++){
-            String row = " | ";
+            StringBuilder row = new StringBuilder(" | ");
             for (int j = 0; j< numOfCols; j++){
-                row += curBoard[j+(i* numOfCols)] + " | ";
+                row.append(curBoard[j + (i * numOfCols)]).append(" | ");
             }
             System.out.println(row);
             System.out.println("---------");

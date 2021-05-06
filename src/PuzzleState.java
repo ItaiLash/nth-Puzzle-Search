@@ -10,17 +10,26 @@ import java.util.Collections;
  *
  * @author Itai Lashover
  */
-public class PuzzleState implements State {
+public class PuzzleState implements State, Comparable<State> {
 
+    private static int uniqueKey = 0;
+
+    private int id;
     private int[] curBoard;
     private int puzzleSize;
     private int numOfRows;
     private int numOfCols;
     private int numOfEmptyBlocks;
     private int cost;
-
+    private Boolean out = false;
     private PuzzleState pre = null;
     private String path = "";
+
+    private PuzzleStateAlgo psa;
+
+    public int gn;
+    public int fn;
+    public int hn;
 
     /**
      *Constructor for PuzzleState
@@ -30,23 +39,35 @@ public class PuzzleState implements State {
      * @param emptyBlocks - Number of empty blocks in the Puzzle
      * @param cost        - The total cost to reach this state
      */
-    public PuzzleState(int[] board, int n, int m, int emptyBlocks, int cost) {
-        this.numOfRows = n;
-        this.numOfCols = m;
+    public PuzzleState(int[] board, int n, int m, int emptyBlocks, int cost, int[] goal) {
+        this.id = uniqueKey++;
         this.numOfRows = n;
         this.numOfCols = m;
         this.puzzleSize = n*m;
         this.numOfEmptyBlocks = emptyBlocks;
         this.curBoard = board;
         this.cost = cost;
+        this.psa = new PuzzleStateAlgo(this,goal);
+        gn = cost;
+        hn = psa.manhattanDistance();
+        fn = getCost();
     }
 
-    /**
-     * * @return The total cost to reach this state
-     */
-    public int getCost() {
-        return cost;
+    private PuzzleState(PuzzleState pre, int[] board, int cost){
+        this.id = uniqueKey++;
+        this.numOfRows = pre.numOfRows;
+        this.numOfCols = pre.numOfCols;
+        this.puzzleSize = pre.puzzleSize;
+        this.numOfEmptyBlocks = pre.numOfEmptyBlocks;
+        this.curBoard = board;
+        this.cost = cost;
+        this.psa = new PuzzleStateAlgo(this,pre.psa.getGoal());
+        gn = cost;
+        hn = psa.manhattanDistance();
+        fn = getCost();
     }
+
+
 
     /**
      * Attempt to locate the "0" spot on the current board
@@ -76,7 +97,8 @@ public class PuzzleState implements State {
 
     /**
      * Attempt to locate the "0" spots on the current board
-     * @return 1 if they are horizontally adjacent, 2 if they are vertically adjacent and 0 otherwise
+     * @return 1 if they are horizontally adjacent,
+     *         2 if they are vertically adjacent and 0 otherwise
      */
     private int getHolesState() {
         int[] holes = getHoles();
@@ -89,19 +111,6 @@ public class PuzzleState implements State {
         else{
             return 0;
         }
-    }
-
-
-    /**
-     * Setter the previous state of the current state
-     * @param pre - The previous State from which we came to the current situation
-     */
-    public void setPre(PuzzleState pre) {
-        this.pre = pre;
-    }
-
-    public PuzzleState getPre() {
-        return pre;
     }
 
     /**
@@ -172,7 +181,7 @@ public class PuzzleState implements State {
     }
 
     private void left(ArrayList<State> successors ,int hole) {
-        if (hole % numOfCols != numOfRows) {
+        if (hole % numOfCols != numOfCols-1) {
             String path = ""+curBoard[hole+1]+"L";
             swapAndStore(hole + 1, hole, cost + 5, successors, path);
         }
@@ -200,7 +209,7 @@ public class PuzzleState implements State {
     }
 
     private void twoLeft(ArrayList<State> successors ,int[] holes) {
-        if (holes[0] % numOfCols != numOfRows) {
+        if (holes[0] % numOfCols != numOfCols-1) {
             String path = ""+curBoard[holes[0] + 1]+"&"+curBoard[holes[1] + 1]+"L";
             swap2AndStore(holes[0] + 1, holes[0], holes[1] + 1, holes[1], cost + 6, successors, path);
         }
@@ -229,10 +238,12 @@ public class PuzzleState implements State {
         int temp = cpy[d1];
         cpy[d1] = curBoard[d2];
         cpy[d2] = temp;
-        PuzzleState newState = new PuzzleState(cpy, numOfRows, numOfCols, numOfEmptyBlocks, cost);
+        PuzzleState newState = new PuzzleState(this ,cpy ,cost);
         if(!this.equals(newState)){
-            s.add(newState);
-            newState.setStringPath(this.path, path);
+            if(this.pre == null || !this.pre.equals(newState)) {
+                s.add(newState);
+                newState.setStringPath(this.path, path);
+            }
         }
     }
 
@@ -244,10 +255,12 @@ public class PuzzleState implements State {
         cpy[e1] = curBoard[e2];
         cpy[d2] = temp1;
         cpy[e2] = temp2;
-        PuzzleState newState = new PuzzleState(cpy, numOfRows, numOfCols, numOfEmptyBlocks, cost);
+        PuzzleState newState = new PuzzleState(this ,cpy ,cost);
         if(!this.equals(newState)){
-            s.add(newState);
-            newState.setStringPath(this.path, path);
+            if(this.pre == null || !this.pre.equals(newState)) {
+                s.add(newState);
+                newState.setStringPath(this.path, path);
+            }
         }
     }
 
@@ -260,31 +273,6 @@ public class PuzzleState implements State {
     @Override
     public boolean isGoal(int[] goalState) {
         return Arrays.equals(curBoard, goalState);
-    }
-
-    /**
-     * Method to print out the current state. Prints the puzzle board.
-     */
-    @Override
-    public void printState() {
-        for(int i=0 ; i<numOfRows ; i++){
-            String row = " | ";
-            for (int j = 0; j< numOfCols; j++){
-                row += curBoard[j+(i* numOfCols)] + " | ";
-            }
-            System.out.println(row);
-            System.out.println("---------");
-        }
-    }
-
-    /**
-     * Overloaded equals method to compare two states.
-     *
-     * @return true or false, depending on whether the states are equal
-     */
-    @Override
-    public boolean equals(State s) {
-        return Arrays.equals(this.curBoard, ((PuzzleState) s).getCurBoard());
     }
 
     /**
@@ -325,9 +313,20 @@ public class PuzzleState implements State {
         return path;
     }
 
-    @Override
-    public String toString() {
-        return Arrays.toString(curBoard);
+
+    /**
+     * @return The total cost ( g(n)+f(n) )to reach this state
+     */
+    public int getCost() {
+        return cost + psa.manhattanDistance();
+    }
+
+    public int getGn(){
+        return gn;
+    }
+
+    public int getHn(){
+        return hn;
     }
 
     public int getNumOfRows(){
@@ -338,4 +337,73 @@ public class PuzzleState implements State {
         return numOfCols;
     }
 
+    public boolean getOut(){ return out; }
+
+    public void setOut(boolean b){ out = b; }
+
+
+    /**
+     * Setter the previous state of the current state
+     * @param pre - The previous State from which we came to the current situation
+     */
+    public void setPre(PuzzleState pre) {
+        this.pre = pre;
+    }
+
+    /**
+     * Getter the previous state of the current state
+     * @return The previous State from which we came to the current situation
+     */
+    public PuzzleState getPre() {
+        return pre;
+    }
+
+    public int getId(){ return  this.id; }
+    /**
+     * Overloaded equals method to compare two states.
+     *
+     * @return true or false, depending on whether the states are equal
+     */
+    @Override
+    public boolean equals(State s) {
+        return Arrays.equals(this.curBoard, ((PuzzleState) s).getCurBoard());
+    }
+
+    @Override
+    public String toString() {
+        return Arrays.toString(curBoard);
+    }
+
+    /**
+     * Method to print out the current state. Prints the puzzle board.
+     */
+    @Override
+    public void printState() {
+        for(int i=0 ; i<numOfRows ; i++){
+            String row = " | ";
+            for (int j = 0; j< numOfCols; j++){
+                row += curBoard[j+(i* numOfCols)] + " | ";
+            }
+            System.out.println(row);
+            System.out.println("---------");
+        }
+    }
+
+    @Override
+    public int compareTo(State o) {
+        if(this.getCost()  < o.getCost()){
+            return -1;
+        }
+        else if(this.getCost() > o.getCost()){
+            return 1;
+        }
+        else{
+            if(this.getId() < o.getId()){
+                return -1;
+            }
+            else{           //this.getId() > o.getId()
+                return 1;
+            }
+        }
+    }
 }

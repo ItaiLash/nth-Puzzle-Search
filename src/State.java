@@ -17,6 +17,10 @@ public interface State {
     // determine cost from initial state to THIS state
      int getCost();
 
+    int getGn();
+
+    int getHn();
+
     // print the current state
     void printState();
 
@@ -32,6 +36,12 @@ public interface State {
     ArrayList<State> getPath();
 
     String getStringPath();
+
+    int getId();
+
+    boolean getOut();
+
+    void setOut(boolean b);
 
     String toString();
 

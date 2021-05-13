@@ -69,7 +69,7 @@ public class Algo {
 
     public String DFID(State start, State goal) {
         numOfStates = 0;
-        for (int depth = 1; ; depth++) {
+        for (int depth = 1 ;; depth++) {
             Hashtable h = new Hashtable();
             String result = Limited_DFS(start, goal, depth, h);
             if (!result.equals("cutoff")) {
@@ -81,7 +81,7 @@ public class Algo {
 
 
     public String Limited_DFS(State curState, State goal, int limit, Hashtable h) {
-        if (curState.equals(goal)) {
+        if (curState.isGoal(goal.getCurBoard())) {
             cost = curState.getCost();
             return curState.getStringPath();
         } else if (limit == 0) {
@@ -92,13 +92,14 @@ public class Algo {
             ArrayList<State> suc = curState.genSuccessors();
             for (State next : suc) {
                 numOfStates++;
-                if (!h.containsKey(next.toString())) {
-                    String result = Limited_DFS(next, goal, limit - 1, h);
-                    if (result.equals("cutoff")) {
-                        isCutoff = true;
-                    } else if (!result.equals("fail")) {
-                        return result;
-                    }
+                if(h.containsKey(next.toString())){
+                    continue;
+                }
+                String result = Limited_DFS(next, goal, limit - 1, h);
+                if (result.equals("cutoff")) {
+                    isCutoff = true;
+                } else if (!result.equals("fail")) {
+                    return result;
                 }
             }
             h.remove(curState.toString());
@@ -119,6 +120,7 @@ public class Algo {
         open.put(start.toString(), start);
         numOfStates++;
         while (!q.isEmpty()) {
+            //print(open);
             State current = q.poll(); // Get the cheapest state to explore.
             open.remove(current.toString(), current);
             if (current.isGoal(goal.getCurBoard())) {
@@ -206,7 +208,6 @@ public class Algo {
         Hashtable<String, State> h = new Hashtable<>();
         stack.push(start);
         h.put(start.toString(), start);
-
         String result = "fail";
         int t = Integer.MAX_VALUE;
         while (!stack.isEmpty()) {
@@ -267,6 +268,13 @@ public class Algo {
         return result;
     }
 
+    private void print(Hashtable<String, State> h){
+        System.out.println("\nOpen List: ");
+        for(String s : h.keySet()){
+            System.out.print(s + ", ");
+        }
+        System.out.println("\n");
+    }
 
 
         public static void main(String[] args) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
@@ -274,7 +282,7 @@ public class Algo {
 //                       5,6,11,7,
 //                       9,10,8,0};
 //        int goal[] = {1,2,3,4,5,6,7,8,9,10,11,0};
-////
+//
 //        State p = new PuzzleState(board, 3, 4, 1, 0,goal);
 //        State g = new PuzzleState(goal, 3, 4, 1, 0,goal);
 //        p.printState();
@@ -290,14 +298,14 @@ public class Algo {
                        3,5,6,
                        2,0,7};
         int[] goal = {1,2,3,4,5,6,7,0,0};
-
+//
         State p = new PuzzleState(board, 3, 3, 2, 0,goal);
         State g = new PuzzleState(goal, 3, 3, 2, 0, goal);
 //        System.out.println(DFBnB(p, g));
 //        System.out.println("Num: " + numOfStates);
 //        System.out.println("Cost: " + cost);
 //
-            Algo a = new Algo("DFBnB", false, true);
+            Algo a = new Algo("DFID", false, true);
             a.run(p,g);
 
     }

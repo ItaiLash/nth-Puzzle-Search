@@ -8,6 +8,7 @@ import java.util.ArrayList;
  * @author Itai Lashover
  */
 public interface State {
+
     // determine if current state is goal
     boolean isGoal(int[] goal);
 
@@ -15,7 +16,7 @@ public interface State {
     ArrayList<State> genSuccessors();
 
     // determine cost from initial state to THIS state
-     int getCost();
+    int getCost();
 
     int getGn();
 

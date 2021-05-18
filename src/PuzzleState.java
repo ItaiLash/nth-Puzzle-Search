@@ -24,12 +24,11 @@ public class PuzzleState implements State, Comparable<State> {
     private Boolean out = false;
     private PuzzleState pre = null;
     private String path = "";
+    public String lastStep = "";    //private
 
     private final PuzzleStateAlgo psa;
 
-    public int gn;
-    public int fn;
-    public int hn;
+    public int heuristic = -1;
 
     /**
      * Constructor for PuzzleState
@@ -48,9 +47,6 @@ public class PuzzleState implements State, Comparable<State> {
         this.curBoard = board;
         this.cost = cost;
         this.psa = new PuzzleStateAlgo(this,goal);
-        gn = cost;
-        hn = psa.manhattanDistance();
-        fn = getCost();
     }
 
     /**
@@ -68,9 +64,7 @@ public class PuzzleState implements State, Comparable<State> {
         this.curBoard = board;
         this.cost = cost;
         this.psa = new PuzzleStateAlgo(this,pre.psa.getGoal());
-        gn = cost;
-        hn = psa.manhattanDistance();
-        fn = getCost();
+        this.pre = pre;
     }
 
     /**
@@ -107,10 +101,10 @@ public class PuzzleState implements State, Comparable<State> {
      */
     public int getHolesState() {
         int[] holes = getHoles();
-        if(holes[0]+numOfRows == holes[1]) {
+        if(holes[0]+numOfCols == holes[1]) {
             return 1;
         }
-        else if(holes[0] + 1 == holes[1] && holes[0]/numOfRows == holes[1]/numOfRows){
+        else if(holes[0] + 1 == holes[1] && holes[0]/numOfCols == holes[1]/numOfCols){
             return 2;
         }
         else{
@@ -146,9 +140,6 @@ public class PuzzleState implements State, Comparable<State> {
             genSuccessors2(successors, holes);
             genSuccessors1(successors, holes[0]);
             genSuccessors1(successors, holes[1]);
-        }
-        for (State suc : successors){
-            suc.setPre(this);
         }
         return successors;
     }
@@ -204,9 +195,11 @@ public class PuzzleState implements State, Comparable<State> {
      * @param hole       - The location of the empty block (the '0' spot) in the current state
      */
     private void right(ArrayList<State> successors ,int hole) {
-        if (hole % numOfCols != 0) {
-            String path = ""+curBoard[hole-1]+"R";
-            swapAndStore(hole - 1, hole, cost + 5, successors, path);
+        if (hole % numOfCols != 0 && curBoard[hole-1] !=0) {
+            String step = ""+curBoard[hole-1]+"R";
+            if(stepBack(step)) {
+                swapAndStore(hole - 1, hole, cost + 5, successors, step);
+            }
         }
     }
 
@@ -223,9 +216,11 @@ public class PuzzleState implements State, Comparable<State> {
      * @param hole       - The location of the empty block (the '0' spot) in the current state
      */
     private void left(ArrayList<State> successors ,int hole) {
-        if (hole % numOfCols != numOfCols-1) {
-            String path = ""+curBoard[hole+1]+"L";
-            swapAndStore(hole + 1, hole, cost + 5, successors, path);
+        if (hole % numOfCols != numOfCols-1 && curBoard[hole+1] != 0) {
+            String step = ""+curBoard[hole+1]+"L";
+            if(stepBack(step) && hole + 1 != 0) {
+                swapAndStore(hole + 1, hole, cost + 5, successors, step);
+            }
         }
     }
 
@@ -242,9 +237,11 @@ public class PuzzleState implements State, Comparable<State> {
      * @param hole       - The location of the empty block (the '0' spot) in the current state
      */
     private void down(ArrayList<State> successors ,int hole) {
-        if (hole >= numOfCols) {
-            String path = ""+curBoard[hole - numOfCols]+"D";
-            swapAndStore(hole - numOfCols, hole, cost + 5, successors, path);
+        if (hole >= numOfCols && curBoard[hole-numOfCols] != 0) {
+            String step = ""+curBoard[hole - numOfCols]+"D";
+            if(stepBack(step)) {
+                swapAndStore(hole - numOfCols, hole, cost + 5, successors, step);
+            }
         }
     }
 
@@ -261,9 +258,11 @@ public class PuzzleState implements State, Comparable<State> {
      * @param hole       - The location of the empty block (the '0' spot) in the current state
      */
     private void up(ArrayList<State> successors ,int hole) {
-        if (hole < (numOfRows - 1) * numOfCols) {
-            String path = ""+curBoard[hole + numOfCols]+"U";
-            swapAndStore(hole + numOfCols, hole, cost + 5, successors, path);
+        if (hole < (numOfRows - 1) * numOfCols && curBoard[hole+numOfCols] != 0) {
+            String step = ""+curBoard[hole + numOfCols]+"U";
+            if(stepBack(step)) {
+                swapAndStore(hole + numOfCols, hole, cost + 5, successors, step);
+            }
         }
     }
 
@@ -282,8 +281,10 @@ public class PuzzleState implements State, Comparable<State> {
      */
     private void twoRight(ArrayList<State> successors ,int[] holes) {
         if (holes[0] % numOfCols != 0) {
-            String path = ""+curBoard[holes[0] - 1]+"&"+curBoard[holes[1] - 1]+"R";
-            swap2AndStore(holes[0] - 1, holes[0], holes[1] - 1, holes[1], cost + 6, successors, path);
+            String step = ""+curBoard[holes[0] - 1]+"&"+curBoard[holes[1] - 1]+"R";
+            if(stepBack(step)) {
+                swap2AndStore(holes[0] - 1, holes[0], holes[1] - 1, holes[1], cost + 6, successors, step);
+            }
         }
     }
 
@@ -302,8 +303,10 @@ public class PuzzleState implements State, Comparable<State> {
      */
     private void twoLeft(ArrayList<State> successors ,int[] holes) {
         if (holes[0] % numOfCols != numOfCols-1) {
-            String path = ""+curBoard[holes[0] + 1]+"&"+curBoard[holes[1] + 1]+"L";
-            swap2AndStore(holes[0] + 1, holes[0], holes[1] + 1, holes[1], cost + 6, successors, path);
+            String step = ""+curBoard[holes[0] + 1]+"&"+curBoard[holes[1] + 1]+"L";
+            if(stepBack(step)) {
+                swap2AndStore(holes[0] + 1, holes[0], holes[1] + 1, holes[1], cost + 6, successors, step);
+            }
         }
     }
 
@@ -322,8 +325,10 @@ public class PuzzleState implements State, Comparable<State> {
      */
     private void twoDown(ArrayList<State> successors ,int[] holes) {
         if (holes[0] >= numOfCols) {
-            String path = ""+curBoard[holes[0] - numOfCols]+"&"+curBoard[holes[1] - numOfCols]+"D";
-            swap2AndStore(holes[0] - numOfCols, holes[0], holes[1] - numOfCols, holes[1], cost + 7, successors, path);
+            String step = ""+curBoard[holes[0] - numOfCols]+"&"+curBoard[holes[1] - numOfCols]+"D";
+            if(stepBack(step)) {
+                swap2AndStore(holes[0] - numOfCols, holes[0], holes[1] - numOfCols, holes[1], cost + 7, successors, step);
+            }
         }
     }
 
@@ -342,8 +347,10 @@ public class PuzzleState implements State, Comparable<State> {
      */
     private void twoUp(ArrayList<State> successors ,int[] holes) {
         if (holes[0] < (numOfRows - 1) * numOfCols) {
-            String path = ""+curBoard[holes[0] + numOfCols]+"&"+curBoard[holes[1] + numOfCols]+"U";
-            swap2AndStore(holes[0] + numOfCols, holes[0], holes[1] + numOfCols, holes[1], cost + 7, successors, path);
+            String step = ""+curBoard[holes[0] + numOfCols]+"&"+curBoard[holes[1] + numOfCols]+"U";
+            if(stepBack(step)) {
+                swap2AndStore(holes[0] + numOfCols, holes[0], holes[1] + numOfCols, holes[1], cost + 7, successors, step);
+            }
         }
     }
 
@@ -354,20 +361,15 @@ public class PuzzleState implements State, Comparable<State> {
      * @param d2   - The index of the data in the array that needs to be swapped
      * @param cost - The cost of replacement (5)
      * @param s    - The ArrayList to which will be added the new state created from the block replacement
-     * @param path - A String that represents the movement of the block
      */
-    private void swapAndStore(int d1, int d2, int cost, ArrayList<State> s, String path) {
+    private void swapAndStore(int d1, int d2, int cost, ArrayList<State> s, String step) {
         int[] cpy = copyBoard(curBoard);
         int temp = cpy[d1];
         cpy[d1] = curBoard[d2];
         cpy[d2] = temp;
         PuzzleState newState = new PuzzleState(this ,cpy ,cost);
-        if(!this.equals(newState)){
-            if(this.pre == null || !this.pre.equals(newState)) {
-                s.add(newState);
-                newState.setStringPath(this.path, path);
-            }
-        }
+        s.add(newState);
+        newState.setStringPath(this.path, step);
     }
 
     /**
@@ -379,9 +381,8 @@ public class PuzzleState implements State, Comparable<State> {
      * @param e2   - The index of the data in the array that needs to be swapped with the data in e1
      * @param cost - The cost of replacement (6 or 7)
      * @param s    - The ArrayList to which will be added the new state created from the block replacement
-     * @param path - A String that represents the movement of the block
      */
-    private void swap2AndStore(int d1, int d2,int e1, int e2, int cost, ArrayList<State> s, String path) {
+    private void swap2AndStore(int d1, int d2,int e1, int e2, int cost, ArrayList<State> s, String step) {
         int[] cpy = copyBoard(curBoard);
         int temp1 = cpy[d1];
         int temp2 = cpy[e1];
@@ -390,12 +391,8 @@ public class PuzzleState implements State, Comparable<State> {
         cpy[d2] = temp1;
         cpy[e2] = temp2;
         PuzzleState newState = new PuzzleState(this ,cpy ,cost);
-        if(!this.equals(newState)){
-            if(this.pre == null || !this.pre.equals(newState)) {
-                s.add(newState);
-                newState.setStringPath(this.path, path);
-            }
-        }
+        s.add(newState);
+        newState.setStringPath(this.path, step);
     }
 
     /**
@@ -416,6 +413,22 @@ public class PuzzleState implements State, Comparable<State> {
         return curBoard;
     }
 
+    private boolean stepBack(String step){
+        return !this.lastStep.equals(reverseStep(step));
+    }
+
+    private String reverseStep(String step){
+        char direction = step.charAt(step.length()-1);
+        char update;
+        switch (direction){
+            case 'R': update = 'L'; break;
+            case 'L': update = 'R'; break;
+            case 'U': update = 'D'; break;
+            case 'D': update = 'U'; break;
+            default: return "";
+        }
+        return step.replace(direction, update);
+    }
     /**
      * Builds an ArrayList of states from the start State to the current State.
      * @return an ArrayList of States
@@ -438,6 +451,7 @@ public class PuzzleState implements State, Comparable<State> {
      * @param current - A string that represents the path of getting from the previous State to the current State
      */
     private void setStringPath(String pre, String current){
+        lastStep = current;
         if(pre.length() == 0) {
             this.path += current;
         }
@@ -456,24 +470,33 @@ public class PuzzleState implements State, Comparable<State> {
 
 
     /**
-     * @return the total cost ( g(n) + f(n) ) to reach to the current State
+     * Calculates the cost of the State
+     * @param withHeuristic - A Boolean variable that will determine whether or not
+     *                        to calculate the cost along with the heuristic function
+     * @return The total cost (including the heuristic function or not)
      */
-    public int getCost() {
-        return cost + psa.manhattanDistance();
+    public int getCost(boolean withHeuristic) {
+        if(withHeuristic){
+            return getGn() + getHn();
+        }
+        return getGn();
     }
 
     /**
      * @return the cost ( g(n) ) to reach to the current State
      */
     public int getGn(){
-        return gn;
+        return cost;
     }
 
     /**
      * @return the heuristic function that estimates the distance of the current State from the goal State
      */
-    public int getHn(){
-        return hn;
+    private int getHn(){
+        if(heuristic == -1){
+            heuristic = psa.manhattanDistance();
+        }
+        return heuristic;
     }
 
     /**
@@ -587,10 +610,10 @@ public class PuzzleState implements State, Comparable<State> {
      */
     @Override
     public int compareTo(State o) {
-        if(this.getCost()  < o.getCost()){
+        if(this.getCost(true)  < o.getCost(true)){
             return -1;
         }
-        else if(this.getCost() > o.getCost()){
+        else if(this.getCost(true) > o.getCost(true)){
             return 1;
         }
         else{

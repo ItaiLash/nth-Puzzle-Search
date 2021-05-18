@@ -1,7 +1,14 @@
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 
+/**
+ * The Algo class contains five search algorithms:
+ * BFS, DFID, A*, IDA*, DFBnB
+ *
+ * @author Itai Lashover
+ */
 public class Algo {
 
     static int numOfStates = 0;
@@ -9,14 +16,33 @@ public class Algo {
     String algo;
     boolean withTime;
     boolean withOpen;
+    final static String outputFilePath = "output.txt";
+    File file;
 
+    /**
+     * Constructor for Algo
+     * @param algo      - The algorithm to be run as a string
+     * @param withOpen  - Boolean variable, for true value the open list will be printed on the screen,
+     *                    otherwise the list will be written to the file
+     * @param withTime  - Boolean variable, if true the algorithm's runtime will be printed to the screen
+     */
     public Algo(String algo, boolean withOpen, boolean withTime){
         this.algo = algo;
         this.withOpen = withOpen;
         this.withTime = withTime;
     }
 
-    public void run(State start, State goal) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    /**
+     * Runs the required algorithm from the start State and prints to the screen the desired values
+     * (run time, open list, number of States generated during the algorithm run and cost)
+     * @param start - The start State, the state from which the algorithm begins
+     * @param goal  - The target state, the state in which the algorithm will end
+     * @throws NoSuchMethodException
+     * @throws InvocationTargetException
+     * @throws IllegalAccessException
+     */
+    public void run(State start, State goal) throws NoSuchMethodException, InvocationTargetException,
+            IllegalAccessException {
         Method m = Algo.class.getDeclaredMethod(algo,State.class,State.class);
         long startTime = 0, stopTime, totalTime = 0;
         if (withTime){
@@ -27,27 +53,42 @@ public class Algo {
             stopTime = System.nanoTime();
             totalTime = stopTime - startTime;
         }
-        System.out.println(algo);
-        System.out.println(ans);
-        if(!ans.equals("fail")) {
-            System.out.println("Num: " + numOfStates);
-            System.out.println("Cost: " + cost);
-            if (withTime) {
-                System.out.println((double) totalTime / 1_000_000_000 + " seconds");
+        file = new File(outputFilePath);
+        try {
+            BufferedWriter bf = new BufferedWriter(new FileWriter(file));
+            //bf.write(algo +"\n");
+            bf.write(ans + "\n");
+            bf.write("Num: " + numOfStates +"\n");
+            if(!ans.equals("no path")) {
+                bf.write("Cost: " + cost +"\n");
+                if (withTime) {
+                    bf.write((double) totalTime / 1_000_000_000 + " seconds");
+                }
             }
+            bf.flush();
+            bf.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-
     }
 
+    /**
+     * BFS Algorithm
+     * @param start - start State
+     * @param goal  - goal State
+     * @return The order of operations from the start State to the goal State as a string,
+     *         If there is no such route the method will return "no path"
+     */
     public String BFS(State start, State goal) {
         numOfStates = 0;
-        Hashtable<String, State> open = new Hashtable();
+        Hashtable<String, State> open = new Hashtable<>();
         Queue<State> q = new LinkedList<>();
-        Hashtable<String, State> close = new Hashtable();
+        Hashtable<String, State> close = new Hashtable<>();
         open.put(start.toString(), start);
         q.add(start);
         numOfStates++;
         while (!q.isEmpty()) {
+            handleOpenList(open);
             State curState = q.poll();
             open.remove(curState.toString());
             close.put(curState.toString(), curState);
@@ -56,7 +97,7 @@ public class Algo {
                 numOfStates++;
                 if (!open.containsKey(next.toString()) && !close.containsKey(next.toString())) {
                     if (next.isGoal(goal.getCurBoard())) {
-                        cost = next.getCost();
+                        cost = next.getCost(false);
                         return next.getStringPath();
                     }
                     open.put(next.toString(), next);
@@ -64,13 +105,20 @@ public class Algo {
                 }
             }
         }
-        return "fail";
+        return "no path";
     }
 
+    /**
+     * DFID Algorithm
+     * @param start - start State
+     * @param goal  - goal State
+     * @return The order of operations from the start State to the goal State as a string,
+     *         If there is no such route the method will return "no path"
+     */
     public String DFID(State start, State goal) {
         numOfStates = 0;
         for (int depth = 1 ;; depth++) {
-            Hashtable h = new Hashtable();
+            Hashtable<String, State> h = new Hashtable<>();
             String result = Limited_DFS(start, goal, depth, h);
             if (!result.equals("cutoff")) {
                 return result;
@@ -79,14 +127,24 @@ public class Algo {
     }
 
 
-
-    public String Limited_DFS(State curState, State goal, int limit, Hashtable h) {
+    /**
+     * Limited DFS Algorithm
+     * @param curState - current State
+     * @param goal     - goal State
+     * @param limit    - The maximum depth that the DFS will reach during the run
+     * @param h        - loop avoidance
+     * @return The order of operations from the start State to the goal State as a string,
+     *         If there is no such route the method will return "no path",
+     *         If the method has reached the limit "cutoff" will return
+     */
+    public String Limited_DFS(State curState, State goal, int limit, Hashtable<String, State> h) {
         if (curState.isGoal(goal.getCurBoard())) {
-            cost = curState.getCost();
+            cost = curState.getCost(false);
             return curState.getStringPath();
         } else if (limit == 0) {
             return "cutoff";
         } else {
+            handleOpenList(h);
             h.put(curState.toString(), curState);
             boolean isCutoff = false;
             ArrayList<State> suc = curState.genSuccessors();
@@ -98,7 +156,7 @@ public class Algo {
                 String result = Limited_DFS(next, goal, limit - 1, h);
                 if (result.equals("cutoff")) {
                     isCutoff = true;
-                } else if (!result.equals("fail")) {
+                } else if (!result.equals("no path")) {
                     return result;
                 }
             }
@@ -106,11 +164,18 @@ public class Algo {
             if (isCutoff) {
                 return "cutoff";
             } else {
-                return "fail";
+                return "no path";
             }
         }
     }
 
+    /**
+     * A* Algorithm
+     * @param start - start State
+     * @param goal  - goal State
+     * @return The order of operations from the start State to the goal State as a string,
+     *         If there is no such route the method will return "no path"
+     */
     public String AStar(State start, State goal) {
         numOfStates = 0;
         Hashtable<String, State> close = new Hashtable<>();
@@ -120,11 +185,11 @@ public class Algo {
         open.put(start.toString(), start);
         numOfStates++;
         while (!q.isEmpty()) {
-            //print(open);
+            handleOpenList(open);
             State current = q.poll(); // Get the cheapest state to explore.
             open.remove(current.toString(), current);
             if (current.isGoal(goal.getCurBoard())) {
-                cost = current.getCost();
+                cost = current.getCost(true);
                 return current.getStringPath();
             }
             close.put(current.toString(), current); // Put it in the closed list.
@@ -137,7 +202,7 @@ public class Algo {
                     open.put(next.toString(), next);
                 } else if (open.containsKey(next.toString())) {
                     State n = open.get(next.toString());
-                    if (n.getGn() > next.getGn()) {
+                    if (n.getCost(false) > next.getCost(false)) {
                         q.remove(n);
                         open.remove(n.toString());
                         q.add(next);
@@ -146,19 +211,27 @@ public class Algo {
                 }
             }
         }
-        return "fail";
+        return "no path";
     }
 
+    /**
+     * IDA* (Iterative deepening A*) Algorithm
+     * @param start - start State
+     * @param goal  - goal State
+     * @return The order of operations from the start State to the goal State as a string,
+     *         If there is no such route the method will return "no path"
+     */
     public String IDAStar(State start, State goal) {
         numOfStates = 0;
-        Stack<State> stack = new Stack();
+        Stack<State> stack = new Stack<>();
         Hashtable<String, State> h = new Hashtable<>();
-        int t = start.getCost();
+        int t = start.getCost(true);
         while (t != Integer.MAX_VALUE) {
             int minF = Integer.MAX_VALUE;
             stack.push(start);
             h.put(stack.toString(), start);
             while (!stack.isEmpty()) {
+                handleOpenList(h);
                 State current = stack.pop();
                 if (current.getOut()) {
                     h.remove(current.toString());
@@ -169,8 +242,8 @@ public class Algo {
                     // Iterate over all of the allowed operators.
                     for (State next : suc) {
                         numOfStates++;
-                        if (next.getCost() > t) {
-                            minF = Math.min(minF, next.getCost());
+                        if (next.getCost(true) > t) {
+                            minF = Math.min(minF, next.getCost(true));
                             continue;
                         }
                         if (h.containsKey(next.toString())) {
@@ -178,7 +251,7 @@ public class Algo {
                             if (same.getOut()) {
                                 continue;
                             } else {
-                                if (same.getCost() > next.getCost()) {
+                                if (same.getCost(true) > next.getCost(true)) {
                                     stack.remove(same);
                                     h.remove(same.toString());
                                 } else {
@@ -187,7 +260,7 @@ public class Algo {
                             }
                         }
                         if (next.isGoal(goal.getCurBoard())) {
-                            cost = next.getCost();
+                            cost = next.getCost(true);
                             return next.getStringPath();
                         }
                         stack.push(next);
@@ -198,19 +271,28 @@ public class Algo {
             start.setOut(false);
             t = minF;
         }
-        return "fail";
+        return "no path";
     }
 
 
+    /**
+     * DFBnB (Depth First Branch and Bound) Algorithm
+     * @param start - start State
+     * @param goal  - goal State
+     * @return The order of operations from the start State to the goal State as a string,
+     *         If there is no such route the method will return "no path"
+     */
     public String DFBnB(State start, State goal) {
         numOfStates = 0;
-        Stack<State> stack = new Stack();
+        Stack<State> stack = new Stack<>();
         Hashtable<String, State> h = new Hashtable<>();
         stack.push(start);
         h.put(start.toString(), start);
-        String result = "fail";
+        String result = "no path";
         int t = Integer.MAX_VALUE;
+        int j=0;
         while (!stack.isEmpty()) {
+            handleOpenList(h);
             State current = stack.pop();
             if (current.getOut()) {
                 h.remove(current.toString());
@@ -220,15 +302,17 @@ public class Algo {
                 stack.push(current);
                 ArrayList<State> suc = current.genSuccessors();
                 Comparator<State> stateComparator = (s1, s2) -> {
-                    if (s1.getCost() < s2.getCost()) {
+                    if (s1.getCost(true) < s2.getCost(true)) {
                         return -1;
-                    } else if (s1.getCost() > s2.getCost()) {
+                    } else if (s1.getCost(true) > s2.getCost(true)) {
                         return 1;
                     } else {
                         if (s1.getId() < s2.getId()) {
                             return -1;
-                        } else {           //s1.getId() > s2.getId()
+                        } else if (s1.getId() > s2.getId()) {
                             return 1;
+                        } else {
+                            return 0;
                         }
                     }
                 };
@@ -237,14 +321,14 @@ public class Algo {
                 for (int i = 0; i < suc.size(); i++) {
                     State next = suc.get(i);
                     numOfStates++;
-                    if (next.getCost() >= t) {
+                    if (next.getCost(true) >= t) {
                         suc.subList(i, suc.size()).clear();
                     } else if (h.containsKey(next.toString())) {
                         State same = h.get(next.toString());
                         if (same.getOut()) {
                             suc.remove(next);
                         } else {
-                            if (same.getCost() <= next.getCost()) {
+                            if (same.getCost(true) <= next.getCost(true)) {
                                 suc.remove(next);
                             } else {
                                 stack.remove(same);
@@ -252,8 +336,8 @@ public class Algo {
                             }
                         }
                     } else if (next.isGoal(goal.getCurBoard())) {   // if we reached here, f(g) < t
-                        t = next.getCost();
-                        cost = next.getCost();
+                        t = next.getCost(true);
+                        cost = next.getCost(true);
                         result = next.getStringPath();
                         suc.subList(i, suc.size()).clear();
                     }
@@ -268,16 +352,38 @@ public class Algo {
         return result;
     }
 
+    /**
+     * Handles the open list, if the 'withOpen' value is true it will call the 'print' method that will print
+     * the list to the screen
+     * @param h - Hashtable that represents the open list
+     */
+    private void handleOpenList(Hashtable<String, State> h) {
+        if(withOpen){ print(h); }
+    }
+
+    /**
+     * print the list (Hashtable values) to the screen
+     * @param h - Hashtable that represents the open list
+     */
     private void print(Hashtable<String, State> h){
-        System.out.println("\nOpen List: ");
-        for(String s : h.keySet()){
-            System.out.print(s + ", ");
+        System.out.println("\nOpen List:");
+        if(h.isEmpty()){
+            System.out.println("empty...");
         }
-        System.out.println("\n");
+        for (Map.Entry<String, State> entry : h.entrySet()) {
+            System.out.println(entry.getValue());
+        }
     }
 
 
-        public static void main(String[] args) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+    public static void main(String[] args) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+//        int[] board = {1,0,4,
+//                       3,5,6,
+//                       2,0,7};
+//        int[] goal = {1,2,3,4,5,6,7,0,0};
+//
+//        State p = new PuzzleState(board, 3, 3, 2, 0,goal);
+//        State g = new PuzzleState(goal, 3, 3, 2, 0, goal);
 //        int board[] = {1,2,3,4,
 //                       5,6,11,7,
 //                       9,10,8,0};
@@ -285,28 +391,15 @@ public class Algo {
 //
 //        State p = new PuzzleState(board, 3, 4, 1, 0,goal);
 //        State g = new PuzzleState(goal, 3, 4, 1, 0,goal);
-//        p.printState();
-////        System.out.println(BFS(p, g));
-////        System.out.println("Num: " + numOfStates);
-////        System.out.println("Cost: " + cost);
-////        System.out.println();
-//        System.out.println(DFBnB(p, g));
-//        System.out.println("Num: " + numOfStates);
-//        System.out.println("Cost: " + cost);
-//
-        int[] board = {1,0,4,
-                       3,5,6,
-                       2,0,7};
-        int[] goal = {1,2,3,4,5,6,7,0,0};
-//
-        State p = new PuzzleState(board, 3, 3, 2, 0,goal);
-        State g = new PuzzleState(goal, 3, 3, 2, 0, goal);
-//        System.out.println(DFBnB(p, g));
-//        System.out.println("Num: " + numOfStates);
-//        System.out.println("Cost: " + cost);
-//
-            Algo a = new Algo("DFID", false, true);
-            a.run(p,g);
+        int[] board = {6,5,2,4,
+                       3,9,10,7,
+                       1,0,0,8};
+        int[] goal = {1,2,3,4,5,6,7,8,9,10,0,0};
+
+        State p = new PuzzleState(board, 3, 4, 2, 0,goal);
+        State g = new PuzzleState(goal, 3, 4, 2, 0, goal);
+        Algo a = new Algo("BFS" , false, true);
+        a.run(p,g);
 
     }
 }

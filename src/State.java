@@ -9,23 +9,14 @@ import java.util.ArrayList;
  */
 public interface State {
 
-    // determine if current state is goal
     boolean isGoal(int[] goal);
 
-    // generate successors to the current state
     ArrayList<State> genSuccessors();
 
-    // determine cost from initial state to THIS state
-    int getCost();
+    int getCost(boolean withHeuristic);
 
-    int getGn();
-
-    int getHn();
-
-    // print the current state
     void printState();
 
-    // compare the actual state data
     boolean equals(State s);
 
     int[] getCurBoard();

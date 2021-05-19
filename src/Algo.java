@@ -126,7 +126,6 @@ public class Algo {
         }
     }
 
-
     /**
      * Limited DFS Algorithm
      * @param curState - current State
@@ -274,7 +273,6 @@ public class Algo {
         return "no path";
     }
 
-
     /**
      * DFBnB (Depth First Branch and Bound) Algorithm
      * @param start - start State
@@ -290,7 +288,6 @@ public class Algo {
         h.put(start.toString(), start);
         String result = "no path";
         int t = Integer.MAX_VALUE;
-        int j=0;
         while (!stack.isEmpty()) {
             handleOpenList(h);
             State current = stack.pop();
@@ -307,13 +304,7 @@ public class Algo {
                     } else if (s1.getCost(true) > s2.getCost(true)) {
                         return 1;
                     } else {
-                        if (s1.getId() < s2.getId()) {
-                            return -1;
-                        } else if (s1.getId() > s2.getId()) {
-                            return 1;
-                        } else {
-                            return 0;
-                        }
+                        return Integer.compare(s1.getId(), s2.getId());
                     }
                 };
                 suc.sort(stateComparator);
@@ -373,33 +364,5 @@ public class Algo {
         for (Map.Entry<String, State> entry : h.entrySet()) {
             System.out.println(entry.getValue());
         }
-    }
-
-
-    public static void main(String[] args) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-//        int[] board = {1,0,4,
-//                       3,5,6,
-//                       2,0,7};
-//        int[] goal = {1,2,3,4,5,6,7,0,0};
-//
-//        State p = new PuzzleState(board, 3, 3, 2, 0,goal);
-//        State g = new PuzzleState(goal, 3, 3, 2, 0, goal);
-//        int board[] = {1,2,3,4,
-//                       5,6,11,7,
-//                       9,10,8,0};
-//        int goal[] = {1,2,3,4,5,6,7,8,9,10,11,0};
-//
-//        State p = new PuzzleState(board, 3, 4, 1, 0,goal);
-//        State g = new PuzzleState(goal, 3, 4, 1, 0,goal);
-        int[] board = {6,5,2,4,
-                       3,9,10,7,
-                       1,0,0,8};
-        int[] goal = {1,2,3,4,5,6,7,8,9,10,0,0};
-
-        State p = new PuzzleState(board, 3, 4, 2, 0,goal);
-        State g = new PuzzleState(goal, 3, 4, 2, 0, goal);
-        Algo a = new Algo("BFS" , false, true);
-        a.run(p,g);
-
     }
 }

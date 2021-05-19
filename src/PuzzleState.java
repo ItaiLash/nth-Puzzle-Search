@@ -13,7 +13,6 @@ import java.util.Collections;
 public class PuzzleState implements State, Comparable<State> {
 
     private static int uniqueKey = 0;
-
     private final int id;
     private final int[] curBoard;
     private final int puzzleSize;
@@ -24,10 +23,8 @@ public class PuzzleState implements State, Comparable<State> {
     private Boolean out = false;
     private PuzzleState pre = null;
     private String path = "";
-    public String lastStep = "";    //private
-
+    private String lastStep = "";
     private final PuzzleStateAlgo psa;
-
     public int heuristic = -1;
 
     /**
@@ -119,7 +116,7 @@ public class PuzzleState implements State, Comparable<State> {
      */
     private int[] copyBoard(int[] state) {
         int[] ret = new int[puzzleSize];
-        if (puzzleSize >= 0) System.arraycopy(state, 0, ret, 0, puzzleSize);
+        System.arraycopy(state, 0, ret, 0, puzzleSize);
         return ret;
     }
 
@@ -414,7 +411,13 @@ public class PuzzleState implements State, Comparable<State> {
     }
 
     private boolean stepBack(String step){
-        return !this.lastStep.equals(reverseStep(step));
+        String reStep = reverseStep(step);
+        if(lastStep.contains("&")){
+            return !(lastStep.contains(reStep) ||
+                    (lastStep.subSequence(0,lastStep.indexOf("&")).equals(reStep.subSequence(0,reStep.length()-1)) &&
+                            lastStep.charAt(lastStep.length()-1) == reStep.charAt(reStep.length()-1)));
+        }
+        return !lastStep.equals(reStep);
     }
 
     private String reverseStep(String step){

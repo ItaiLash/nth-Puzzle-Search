@@ -1,5 +1,5 @@
 /**
- *The PuzzleStateAlgo class is responsible for calculating the heuristic function of a given state
+ * The PuzzleStateAlgo class is responsible for calculating the heuristic function of a given state
  * according to its distance from the goal state.
  *
  * @author Itai Lashover
@@ -19,14 +19,14 @@ public class PuzzleStateAlgo {
     }
 
     /**
-     * @return the Manhattan distance of the current state from the goal State
+     * @return the Manhattan distance + Linear Conflict of the current state from the goal State
      */
     public int manhattanDistance() {
         if(currentState.getNumOfEmptyBlocks() == 1){
-            return manhattan(5);
+            return (manhattan(5) + (linearConflict()*2*5));
         }
         else{
-            return manhattan(3);
+            return (manhattan(3) + (linearConflict()*2*3));
         }
     }
 
@@ -84,94 +84,86 @@ public class PuzzleStateAlgo {
     public int[] getGoal(){
         return goalState;
     }
-/*
-    public int manhattan2(){
-        int minManhattan = manhattan1(5);
-        if(currentState.getHolesState() == 2){
-            ArrayList<int[]> arr = swap2Ver(currentState.getCurBoard(), currentState.getHolesIndex());
-            for(int[] s : arr){
-                int currentMan = manhattan1(s,5)+6;
-                if(currentMan < minManhattan){
-                    minManhattan = currentMan;
+
+    /**
+     * Two tiles are in linear conflict if both tiles are in their target rows or columns, and in the same setting of
+     * the manhattan heuristic, they must pass over each other in order to reach their final goal position.
+     * Since there is no possible way for tiles to actually slide over each other.
+     * If such a conflict arises, then one of the tiles would need to move out of the aforementioned row or column,
+     * and back in again, adding 2 moves to the sum of their manhattan distances.
+     * @return the number of linear conflicts in the current State
+     */
+    private int linearConflict(){
+        return linearConflictHor() + linearConflictVer();
+    }
+
+    /**
+     * @return the number of horizontal linear conflicts in the current State
+     */
+    private int linearConflictHor(){
+        int numOfConflicts = 0;
+        for(int i=0 ; i< currentState.getNumOfRows() ; i++){
+            for(int j=0 ; j< currentState.getNumOfCols() ; j++){
+                int val = currentState.getCurBoard()[i*currentState.getNumOfCols()+j];
+                if(val == 0){
+                    continue;
+                }
+                int goalRow = goalRow(val);
+                int goalCol = goalCol(val);
+                if(goalRow == i){
+                    for(int k=j+1 ; k< currentState.getNumOfCols() ; k++){
+                        int val2 = currentState.getCurBoard()[i*currentState.getNumOfCols()+k];
+                        if(val2 == 0){
+                            continue;
+                        }
+                        int goalRow2 = goalRow(val2);
+                        int goalCol2 = goalCol(val2);
+                        if(goalRow2 == i){
+                            if(goalCol > goalCol2){
+                                numOfConflicts++;
+                                j = k-1;
+                                break;
+                            }
+                        }
+                    }
                 }
             }
-            return minManhattan;
         }
-        else if(currentState.getHolesState() == 1){
-            ArrayList<int[]> arr = swap2Hor(currentState.getCurBoard(), currentState.getHolesIndex());
-            for(int[] s : arr){
-                int currentMan = manhattan1(s,5)+7;
-                if(currentMan < minManhattan){
-                    minManhattan = currentMan;
+        return numOfConflicts;
+    }
+
+    /**
+     * @return the number of vertical linear conflicts in the current State
+     */
+    private int linearConflictVer(){
+        int numOfConflicts = 0;
+        for(int i=0 ; i< currentState.getNumOfCols() ; i++){
+            for(int j=0 ; j< currentState.getNumOfRows() ; j++){
+                int val = currentState.getCurBoard()[j*currentState.getNumOfCols()+i];
+                if(val == 0){
+                    continue;
+                }
+                int goalRow = goalRow(val);
+                int goalCol = goalCol(val);
+                if(goalCol == i){
+                    for(int k=j+1 ; k< currentState.getNumOfRows() ; k++){
+                        int val2 = currentState.getCurBoard()[k*currentState.getNumOfCols()+i];
+                        if(val2 == 0){
+                            continue;
+                        }
+                        int goalRow2 = goalRow(val2);
+                        int goalCol2 = goalCol(val2);
+                        if(goalCol2 == i){
+                            if(goalRow > goalRow2){
+                                numOfConflicts++;
+                                j=k-1;
+                                break;
+                            }
+                        }
+                    }
                 }
             }
         }
-        return minManhattan;
+        return numOfConflicts;
     }
-
-    private int manhattan1(int[] board, int c){
-        int manhattan = 0;
-        for(int i = 0 ; i < currentState.getNumOfRows() ; i++) {
-            for(int j = 0 ; j < currentState.getNumOfCols() ; j++){
-                if(board[i*currentState.getNumOfCols()+j] != 0 &&
-                        board[i*currentState.getNumOfCols()+j] != goalState[i*currentState.getNumOfCols()+j]){
-                    manhattan += ((Math.abs(i - goalRow(board[i*currentState.getNumOfCols()+j])) +
-                            Math.abs(j - goalCol(board[i*currentState.getNumOfCols()+j]))))*c;
-                }
-            }
-        }
-        return manhattan;
-    }
-
-    @Override
-    public int heuristic() {
-        int hamming = 0;
-        for (int i = 0; i < currentState.getCurBoard().length; i++) {
-            if (currentState.getCurBoard()[i] != 0 &&
-                    currentState.getCurBoard()[i] !=goalState[i]) {
-                hamming++;
-            }
-        }
-        return hamming;
-    }
-    private ArrayList<int[]> swap2Ver(int[] currentBoard, int[] holes){
-        ArrayList<int[]> swaps = new ArrayList<>();
-        if(isInside(currentBoard, holes[0]+currentState.getNumOfCols()) && isInside(currentBoard, holes[1]+currentState.getNumOfCols())){
-            swaps.add(swap(currentBoard, holes[0], holes[0]+currentState.getNumOfCols(), holes[1], holes[1]+currentState.getNumOfCols()));
-        }
-        if(isInside(currentBoard, holes[0]-currentState.getNumOfCols()) && isInside(currentBoard, holes[1]-currentState.getNumOfCols())){
-            swaps.add(swap(currentBoard, holes[0], holes[0]-currentState.getNumOfCols(), holes[1], holes[1]-currentState.getNumOfCols()));
-        }
-        return swaps;
-    }
-
-    private ArrayList<int[]> swap2Hor(int[] currentBoard, int[] holes){
-        ArrayList<int[]> swaps = new ArrayList<>();
-        if(isInside(currentBoard, holes[0]+1) && isInside(currentBoard, holes[1]+1)){
-            swaps.add(swap(currentBoard, holes[0], holes[0]+1, holes[1], holes[1]+1));
-        }
-        if(isInside(currentBoard, holes[0]-1) && isInside(currentBoard, holes[1]-1)){
-            swaps.add(swap(currentBoard, holes[0], holes[0]-1, holes[1], holes[1]-1));
-        }
-        return swaps;
-    }
-
-    private boolean isInside(int[] arr, int x){
-        return (x < arr.length && x>=0);
-    }
-
-    private int[] swap(int[] arr, int x1, int y1, int x2, int y2){
-        int[] cpy = new int[arr.length];
-        System.arraycopy(arr, 0, cpy, 0, arr.length);
-        swap(cpy, x1, y1);
-        swap(cpy, x2, y2);
-        return cpy;
-    }
-
-    private void swap(int[] arr, int x, int y){
-        int temp = arr[x];
-        arr[x] = arr[y];
-        arr[y] = temp;
-    }
- */
 }

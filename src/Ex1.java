@@ -13,11 +13,12 @@ import java.util.Scanner;
  */
 public class Ex1 {
 
-        public static void main(String[] args)
-                throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, FileNotFoundException {
+    public static void main(String[] args)
+            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, FileNotFoundException {
 
         Ex1 mainProg = new Ex1("input2.txt");
             mainProg.run();
+
     }
 
     String selectedAlgo;
@@ -119,7 +120,7 @@ public class Ex1 {
      *  4,5,6    -->  "1,2,3,4,5,6,7,8,_"
      *  7,8,_"
      * @param s - String as obtained from the input file
-     * @return
+     * @return the fixed String
      */
     private String fixString(String s) {
         StringBuilder fixed = new StringBuilder();

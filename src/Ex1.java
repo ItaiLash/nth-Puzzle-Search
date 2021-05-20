@@ -16,7 +16,7 @@ public class Ex1 {
     public static void main(String[] args)
             throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, FileNotFoundException {
 
-        Ex1 mainProg = new Ex1("input2.txt");
+        Ex1 mainProg = new Ex1("input.txt");
             mainProg.run();
 
     }

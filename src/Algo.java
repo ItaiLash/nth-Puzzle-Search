@@ -61,9 +61,9 @@ public class Algo {
             bf.write("Num: " + numOfStates +"\n");
             if(!ans.equals("no path")) {
                 bf.write("Cost: " + cost +"\n");
-                if (withTime) {
-                    bf.write((double) totalTime / 1_000_000_000 + " seconds");
-                }
+            }
+            if (withTime) {
+                bf.write((double) totalTime / 1_000_000_000 + " seconds");
             }
             bf.flush();
             bf.close();
